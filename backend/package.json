@@ -1,6 +1,7 @@
 {
   "name": "ripe-engine-backend",
   "version": "1.0.0",
+  "type": "commonjs",
   "description": "RIPE Engine – Real-time Income Protection Engine Backend",
   "main": "server.js",
   "scripts": {
