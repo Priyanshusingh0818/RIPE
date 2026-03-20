@@ -79,7 +79,20 @@ const Simulation = () => {
       await new Promise((r) => setTimeout(r, 1200));
       setCurrentStep(3);
 
-      const claimRes = await api.claim({ userId, eventType: meta.eventType });
+      // Pass fallback user data for Vercel serverless (where memory is lost)
+      const stored = JSON.parse(localStorage.getItem("ripe_user") || "null");
+      const userFallback = stored?.user || {
+        name: "Demo Worker",
+        platform: "Zomato",
+        location: "Mumbai",
+        weeklyIncome: 5000
+      };
+
+      const claimRes = await api.claim({ 
+        userId, 
+        eventType: meta.eventType,
+        userFallback
+      });
       setClaimData(claimRes.data as unknown as Record<string, unknown>);
 
       // Save claim to localStorage for Dashboard

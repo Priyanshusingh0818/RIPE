@@ -38,14 +38,19 @@ const claim = async (req, res, next) => {
     // Simulate processing
     await delay(1000);
 
-    // 1. Find user
-    const user = getUserById(userId);
+    // 1. Find user (or reconstruct if serverless memory lost them)
+    let user = getUserById(userId);
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: `User not found: ${userId}`,
-        timestamp: timestamp(),
-      });
+      console.log(`[CLAIM] User ${userId} not in memory, reconstructing from fallback`);
+      const { createPersona } = require('../services/personaEngine');
+      const fallback = req.body.userFallback || { 
+        name: 'Demo Worker', 
+        platform: 'Zomato', 
+        location: 'Mumbai', 
+        weeklyIncome: 5000 
+      };
+      user = createPersona(fallback);
+      user.id = userId; // Override generated ID to match the requested one
     }
 
     // 2. Get or simulate event

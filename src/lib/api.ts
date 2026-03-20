@@ -20,6 +20,12 @@ interface ClaimPayload {
   userId: string;
   eventType?: string;
   eventId?: string;
+  userFallback?: {
+    name: string;
+    platform: string;
+    location: string;
+    weeklyIncome: number;
+  };
 }
 
 interface ExplainPayload {
