@@ -3,28 +3,34 @@ import { User, Zap, Brain, Scale, ShieldCheck, FileCheck, Wallet } from "lucide-
 import { cn } from "@/lib/utils";
 
 const nodes = [
-  { icon: User, label: "User", data: "Active" },
-  { icon: Zap, label: "Event Trigger", data: "Detected" },
-  { icon: Brain, label: "Risk Engine", data: "Score: 72" },
-  { icon: Scale, label: "Decision", data: "Approved" },
-  { icon: ShieldCheck, label: "Fraud Check", data: "Low Risk" },
-  { icon: FileCheck, label: "Claim Engine", data: "Auto-filed" },
-  { icon: Wallet, label: "Payout", data: "₹520" },
+  { icon: User, label: "User", data: "Active", metric: "Verified" },
+  { icon: Zap, label: "Event Trigger", data: "Detected", metric: "Severity: High" },
+  { icon: Brain, label: "Risk Engine", data: "Score: 72", metric: "Confidence: 94%" },
+  { icon: Scale, label: "Decision", data: "Approved", metric: "Threshold: Met" },
+  { icon: ShieldCheck, label: "Fraud Check", data: "Low Risk", metric: "Score: 0.12" },
+  { icon: FileCheck, label: "Claim Engine", data: "Auto-filed", metric: "Latency: 1.8s" },
+  { icon: Wallet, label: "Payout", data: "₹520", metric: "UPI: 8.2s" },
 ];
 
-// Map simulation step (0-4) to how many flowchart nodes are active
 const stepToActiveNodes = [2, 3, 5, 6, 7];
 
 interface FlowChartProps {
-  currentStep: number; // 0-4 simulation step index, -1 = none
+  currentStep: number;
+  traceId?: string;
 }
 
-const FlowChart = ({ currentStep }: FlowChartProps) => {
+const FlowChart = ({ currentStep, traceId }: FlowChartProps) => {
   const activeCount = currentStep >= 0 ? stepToActiveNodes[Math.min(currentStep, 4)] : 0;
 
   return (
     <div className="w-full overflow-x-auto pb-4">
-      <div className="flex items-center gap-0 min-w-[800px] px-4">
+      {traceId && (
+        <div className="flex items-center justify-between mb-3 px-4">
+          <span className="text-[10px] font-mono text-muted-foreground">Execution Trace</span>
+          <span className="text-[10px] font-mono text-primary/70">{traceId}</span>
+        </div>
+      )}
+      <div className="flex items-center gap-0 min-w-[900px] px-4">
         {nodes.map((node, i) => {
           const isActive = i < activeCount;
           const isCurrent = i === activeCount - 1;
@@ -40,16 +46,24 @@ const FlowChart = ({ currentStep }: FlowChartProps) => {
                 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className={cn(
-                  "flex flex-col items-center gap-2 px-3 py-4 rounded-2xl border transition-all duration-500 min-w-[100px]",
+                  "flex flex-col items-center gap-1.5 px-3 py-4 rounded-2xl border transition-all duration-500 min-w-[110px]",
                   isActive
                     ? "border-primary/40 bg-primary/5"
                     : "border-border/30 bg-card/30",
                   isCurrent && "glow-primary"
                 )}
               >
+                {/* Pulse indicator for current node */}
+                {isCurrent && (
+                  <motion.div
+                    className="absolute inset-0 rounded-2xl bg-primary/5"
+                    animate={{ opacity: [0.2, 0.5, 0.2] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                )}
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-500",
+                    "relative w-10 h-10 rounded-xl flex items-center justify-center transition-colors duration-500",
                     isActive ? "bg-primary/15 text-primary" : "bg-muted/50 text-muted-foreground"
                   )}
                 >
@@ -68,6 +82,14 @@ const FlowChart = ({ currentStep }: FlowChartProps) => {
                 >
                   {node.data}
                 </motion.span>
+                {/* Mini metric */}
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: isActive ? 0.7 : 0 }}
+                  className="text-[9px] font-mono text-muted-foreground"
+                >
+                  {node.metric}
+                </motion.span>
               </motion.div>
 
               {i < nodes.length - 1 && (
@@ -82,7 +104,8 @@ const FlowChart = ({ currentStep }: FlowChartProps) => {
                   {i < activeCount - 1 && (
                     <motion.div
                       initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
+                      animate={{ opacity: [0.4, 1, 0.4] }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
                       className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-l-[5px] border-l-primary border-y-[3px] border-y-transparent"
                     />
                   )}

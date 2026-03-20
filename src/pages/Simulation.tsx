@@ -4,6 +4,7 @@ import { useParams, Link } from "react-router-dom";
 import { AlertTriangle, Search, ShieldCheck, FileCheck, CheckCircle, Loader2, ArrowLeft, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FlowChart from "@/components/ripe/FlowChart";
+import { EventDetailsPanel, RiskBreakdownPanel, FraudAnalysisPanel, DecisionPanel, PayoutPanel } from "@/components/ripe/SimulationPanels";
 import Navbar from "@/components/ripe/Navbar";
 import { cn } from "@/lib/utils";
 
@@ -17,15 +18,17 @@ const scenarioMeta: Record<string, { label: string; emoji: string }> = {
 
 const steps = [
   { label: "Event Detected", desc: "External disruption confirmed via real-time data feeds.", icon: AlertTriangle },
-  { label: "Analyzing Worker Exposure", desc: "Evaluating impact on your delivery zone and schedule.", icon: Search },
-  { label: "Running Fraud Checks", desc: "Verifying legitimacy through multi-signal analysis.", icon: ShieldCheck },
-  { label: "Claim Automatically Triggered", desc: "Parametric threshold met — claim filed instantly.", icon: FileCheck },
-  { label: "Payout Processed", desc: "₹520 transferred to your wallet.", icon: CheckCircle },
+  { label: "Analyzing Worker Exposure", desc: "Evaluating impact on delivery zone and shift schedule.", icon: Search },
+  { label: "Running Fraud Checks", desc: "Multi-signal verification — GPS, activity, duplicates.", icon: ShieldCheck },
+  { label: "Claim Automatically Triggered", desc: "Parametric threshold met — claim filed with full audit trail.", icon: FileCheck },
+  { label: "Payout Processed", desc: "Funds transferred to wallet via UPI in 8.2 seconds.", icon: CheckCircle },
 ];
 
 const Simulation = () => {
   const { scenarioId } = useParams();
-  const meta = scenarioMeta[scenarioId || "rain"] || scenarioMeta.rain;
+  const id = scenarioId || "rain";
+  const meta = scenarioMeta[id] || scenarioMeta.rain;
+  const [traceId] = useState(() => `#RPE-${Math.floor(10000 + Math.random() * 89999)}`);
 
   const [currentStep, setCurrentStep] = useState(-1);
   const [started, setStarted] = useState(false);
@@ -46,6 +49,8 @@ const Simulation = () => {
     setCurrentStep(0);
   };
 
+  const scenarioData = { scenarioId: id, label: meta.label };
+
   return (
     <div className="min-h-screen relative">
       <div className="absolute inset-0 pointer-events-none">
@@ -54,7 +59,7 @@ const Simulation = () => {
       </div>
       <Navbar />
 
-      <main className="relative z-10 max-w-4xl mx-auto px-6 pt-28 pb-16">
+      <main className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-16">
         <Link to="/scenarios" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Scenarios
         </Link>
@@ -63,12 +68,19 @@ const Simulation = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-8"
+          className="mb-6 flex items-center justify-between"
         >
-          <h1 className="text-3xl font-bold tracking-tight">
-            {meta.emoji} {meta.label} Simulation
-          </h1>
-          <p className="text-muted-foreground mt-1">Watch RIPE's AI pipeline process this disruption in real-time.</p>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {meta.emoji} {meta.label} Simulation
+            </h1>
+            <p className="text-muted-foreground mt-1">RIPE's AI pipeline processing this disruption in real-time.</p>
+          </div>
+          {started && (
+            <span className="text-[11px] font-mono text-muted-foreground bg-secondary/40 px-3 py-1 rounded-full">
+              Trace: {traceId}
+            </span>
+          )}
         </motion.div>
 
         {!started ? (
@@ -88,51 +100,75 @@ const Simulation = () => {
           </motion.div>
         ) : (
           <>
-            {/* Step executor */}
-            <div className="glass rounded-2xl p-6 mb-6">
-              <div className="space-y-4">
-                {steps.map((step, i) => {
-                  const isActive = i <= currentStep;
-                  const isCurrent = i === currentStep;
-                  const isDone = i < currentStep;
-                  const Icon = step.icon;
+            {/* Step executor + Event Details side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+              <div className="lg:col-span-3 glass rounded-2xl p-6">
+                <div className="space-y-4">
+                  {steps.map((step, i) => {
+                    const isActive = i <= currentStep;
+                    const isCurrent = i === currentStep;
+                    const isDone = i < currentStep;
+                    const Icon = step.icon;
 
-                  return (
-                    <AnimatePresence key={i}>
-                      {isActive && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                          className={cn(
-                            "flex items-start gap-4 p-4 rounded-xl transition-all duration-500",
-                            isCurrent && "bg-primary/5 glow-primary",
-                            isDone && "opacity-70"
-                          )}
-                        >
-                          <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-500",
-                            isDone ? "bg-primary/10 text-primary" : isCurrent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
-                          )}>
-                            {isCurrent && !isDone ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : isDone ? (
-                              <CheckCircle className="w-5 h-5" />
-                            ) : (
-                              <Icon className="w-5 h-5" />
+                    return (
+                      <AnimatePresence key={i}>
+                        {isActive && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                            className={cn(
+                              "flex items-start gap-4 p-4 rounded-xl transition-all duration-500",
+                              isCurrent && "bg-primary/5 glow-primary",
+                              isDone && "opacity-70"
                             )}
-                          </div>
-                          <div className="pt-0.5">
-                            <p className="font-semibold">{step.label}</p>
-                            <p className="text-sm text-muted-foreground">{step.desc}</p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  );
-                })}
+                          >
+                            <div className={cn(
+                              "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-500",
+                              isDone ? "bg-primary/10 text-primary" : isCurrent ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                            )}>
+                              {isCurrent && !isDone ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                              ) : isDone ? (
+                                <CheckCircle className="w-5 h-5" />
+                              ) : (
+                                <Icon className="w-5 h-5" />
+                              )}
+                            </div>
+                            <div className="pt-0.5">
+                              <p className="font-semibold">{step.label}</p>
+                              <p className="text-sm text-muted-foreground">{step.desc}</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="lg:col-span-2 space-y-4">
+                <EventDetailsPanel scenario={scenarioData} />
               </div>
             </div>
+
+            {/* Analysis panels - show progressively */}
+            <AnimatePresence>
+              {currentStep >= 1 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <RiskBreakdownPanel scenario={scenarioData} />
+                  {currentStep >= 2 && <FraudAnalysisPanel />}
+                </div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {currentStep >= 3 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <DecisionPanel scenario={scenarioData} />
+                  {currentStep >= 4 && <PayoutPanel scenario={scenarioData} />}
+                </div>
+              )}
+            </AnimatePresence>
 
             {/* Flowchart */}
             <motion.div
@@ -142,7 +178,7 @@ const Simulation = () => {
               className="glass rounded-2xl p-6 mb-6"
             >
               <h3 className="text-sm font-semibold text-muted-foreground mb-4 uppercase tracking-wider">System Pipeline</h3>
-              <FlowChart currentStep={currentStep} />
+              <FlowChart currentStep={currentStep} traceId={traceId} />
             </motion.div>
 
             {/* AI Explanation */}
@@ -154,11 +190,14 @@ const Simulation = () => {
                   transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
                   className="glass rounded-2xl p-6 glow-accent"
                 >
-                  <div className="flex items-center gap-2 mb-4">
-                    <Brain className="w-5 h-5 text-accent" />
-                    <h3 className="font-semibold">Why did you receive ₹520?</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Brain className="w-5 h-5 text-accent" />
+                      <h3 className="font-semibold">Why did you receive this payout?</h3>
+                    </div>
+                    <span className="text-[10px] font-mono text-accent/60">Powered by Qwen 3 32B</span>
                   </div>
-                  <TypeWriter text={`Based on real-time weather data, heavy rainfall (42mm/hr) was detected in your delivery zone at 2:34 PM. Your scheduled shift overlapped with the disruption window by 3.2 hours. The AI risk engine assessed a 72% income loss probability. After automated fraud verification confirmed your location and active status, a parametric claim of ₹520 was triggered and processed to your wallet within 8 seconds.`} />
+                  <TypeWriter text={`Based on real-time environmental data, ${meta.label.toLowerCase()} was detected in your delivery zone at ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}. Your scheduled shift overlapped with the disruption window. The AI risk engine assessed a composite risk score above the parametric threshold after analyzing weather severity, zone flood history, and your exposure duration. Automated fraud verification confirmed your GPS location, validated normal activity patterns, and cleared duplicate claim checks (fraud score: 0.12). The parametric claim was auto-triggered and processed to your UPI wallet within 8.2 seconds. AI Confidence: 96.3%.`} />
                   <div className="mt-6 flex gap-3">
                     <Link to="/dashboard">
                       <Button variant="hero" size="lg">View Dashboard</Button>
@@ -177,7 +216,6 @@ const Simulation = () => {
   );
 };
 
-// Typing animation component
 const TypeWriter = ({ text }: { text: string }) => {
   const [displayed, setDisplayed] = useState("");
 
@@ -190,7 +228,7 @@ const TypeWriter = ({ text }: { text: string }) => {
       } else {
         clearInterval(interval);
       }
-    }, 18);
+    }, 15);
     return () => clearInterval(interval);
   }, [text]);
 
