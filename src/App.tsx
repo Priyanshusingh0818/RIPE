@@ -8,6 +8,8 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Scenarios from "./pages/Scenarios";
 import Simulation from "./pages/Simulation";
+import Architecture from "./pages/Architecture";
+import About from "./pages/About";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/scenarios" element={<Scenarios />} />
           <Route path="/simulation/:scenarioId" element={<Simulation />} />
+          <Route path="/architecture" element={<Architecture />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

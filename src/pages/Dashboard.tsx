@@ -1,21 +1,21 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Shield, TrendingUp, Clock, Brain, ArrowRight } from "lucide-react";
+import { Shield, TrendingUp, Clock, Brain, ArrowRight, MapPin, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCountUp } from "@/hooks/useCountUp";
 import Navbar from "@/components/ripe/Navbar";
 
 const fadeUp = (delay: number) => ({
-  initial: { opacity: 0, y: 16, filter: "blur(4px)" },
-  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+  initial: { opacity: 0, y: 16, filter: "blur(4px)" as string },
+  animate: { opacity: 1, y: 0, filter: "blur(0px)" as string },
   transition: { duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] as const },
 });
 
 const claimsHistory = [
-  { date: "Mar 18", event: "Heavy Rain – Koramangala", amount: 520, status: "Paid" },
-  { date: "Mar 14", event: "App Downtime – Swiggy", amount: 340, status: "Paid" },
-  { date: "Mar 10", event: "Extreme Heat – HSR Layout", amount: 420, status: "Paid" },
-  { date: "Mar 6", event: "Pollution Spike – Indiranagar", amount: 280, status: "Paid" },
+  { date: "Mar 18, 2:34 PM", event: "Heavy Rain – Koramangala", amount: 520, status: "Paid", confidence: "96.3%", latency: "8.2s" },
+  { date: "Mar 14, 11:22 AM", event: "App Downtime – Swiggy", amount: 340, status: "Paid", confidence: "91.7%", latency: "6.8s" },
+  { date: "Mar 10, 3:15 PM", event: "Extreme Heat – HSR Layout", amount: 420, status: "Paid", confidence: "94.1%", latency: "7.4s" },
+  { date: "Mar 6, 9:48 AM", event: "Pollution Spike – Indiranagar", amount: 280, status: "Paid", confidence: "88.9%", latency: "9.1s" },
 ];
 
 const Dashboard = () => {
@@ -33,12 +33,11 @@ const Dashboard = () => {
       <main className="relative z-10 max-w-6xl mx-auto px-6 pt-28 pb-16">
         <motion.div {...fadeUp(0)} className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Your income protection at a glance.</p>
+          <p className="text-muted-foreground mt-1">Your income protection at a glance — real-time monitoring active.</p>
         </motion.div>
 
         {/* Top cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {/* Active Coverage */}
           <motion.div {...fadeUp(0.1)} className="glass rounded-2xl p-6 glow-primary">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -50,9 +49,12 @@ const Dashboard = () => {
               </div>
             </div>
             <p className="text-sm text-muted-foreground">Standard Plan · ₹520/event max</p>
+            <div className="mt-3 flex items-center gap-2 text-[10px] text-muted-foreground">
+              <MapPin className="w-3 h-3" /> Koramangala, Bangalore
+              <span className="ml-auto font-mono">Zone Risk: Flood-prone</span>
+            </div>
           </motion.div>
 
-          {/* Risk Score */}
           <motion.div {...fadeUp(0.2)} className="glass rounded-2xl p-6 flex items-center gap-5">
             <div className="relative w-16 h-16 shrink-0">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -71,12 +73,12 @@ const Dashboard = () => {
               </div>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Risk Score</p>
+              <p className="text-sm text-muted-foreground">Composite Risk Score</p>
               <p className="font-bold">Medium Zone</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Weather: 68 · Zone: 72 · Exposure: 64</p>
             </div>
           </motion.div>
 
-          {/* Earnings Protected */}
           <motion.div {...fadeUp(0.3)} className="glass rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -85,12 +87,14 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground">Earnings Protected</p>
             </div>
             <p className="text-3xl font-bold tracking-tight tabular-nums">₹{earnings.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground mt-1">This month</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-muted-foreground">This month</p>
+              <span className="text-[10px] font-mono text-primary">4 claims · avg 8.1s settlement</span>
+            </div>
           </motion.div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Claims History */}
           <motion.div {...fadeUp(0.4)} className="lg:col-span-2 glass rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-5">
               <Clock className="w-4 h-4 text-muted-foreground" />
@@ -111,22 +115,27 @@ const Dashboard = () => {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold tabular-nums">₹{claim.amount}</p>
-                    <p className="text-xs text-primary">{claim.status}</p>
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="text-xs text-primary">{claim.status}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">AI: {claim.confidence} · {claim.latency}</span>
+                    </div>
                   </div>
                 </motion.div>
               ))}
             </div>
           </motion.div>
 
-          {/* AI Insight */}
           <motion.div {...fadeUp(0.5)} className="glass rounded-2xl p-6">
             <div className="flex items-center gap-2 mb-4">
               <Brain className="w-4 h-4 text-accent" />
               <h3 className="font-semibold">AI Insight</h3>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              Based on weather forecasts and platform data, there's a <span className="text-foreground font-medium">68% chance of heavy rain</span> in your zone this Thursday. Your coverage is active and will auto-trigger if disruption occurs.
+            <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+              Based on IMD weather forecasts and Swiggy platform data, there's a <span className="text-foreground font-medium">68% chance of heavy rain</span> in your zone this Thursday 2:00–6:00 PM.
             </p>
+            <div className="flex items-center gap-2 text-[10px] mb-4 text-muted-foreground">
+              <Activity className="w-3 h-3" /> AI Confidence: 92% · Updated 14 min ago
+            </div>
             <Link to="/scenarios">
               <Button variant="glass" size="sm" className="w-full">
                 Run Simulation <ArrowRight className="w-3.5 h-3.5" />
