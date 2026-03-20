@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link } from "react-router-dom";
 import { AlertTriangle, Search, ShieldCheck, FileCheck, CheckCircle, Loader2, ArrowLeft, Brain } from "lucide-react";
@@ -7,21 +7,22 @@ import FlowChart from "@/components/ripe/FlowChart";
 import { EventDetailsPanel, RiskBreakdownPanel, FraudAnalysisPanel, DecisionPanel, PayoutPanel } from "@/components/ripe/SimulationPanels";
 import Navbar from "@/components/ripe/Navbar";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
-const scenarioMeta: Record<string, { label: string; emoji: string }> = {
-  rain: { label: "Heavy Rain", emoji: "🌧️" },
-  heat: { label: "Extreme Heat", emoji: "🔥" },
-  pollution: { label: "Pollution Spike", emoji: "😷" },
-  curfew: { label: "Curfew / Zone Closure", emoji: "🚫" },
-  downtime: { label: "App Downtime", emoji: "📉" },
+const scenarioMeta: Record<string, { label: string; emoji: string; eventType: string }> = {
+  rain: { label: "Heavy Rain", emoji: "🌧️", eventType: "rain" },
+  heat: { label: "Extreme Heat", emoji: "🔥", eventType: "heat" },
+  pollution: { label: "Pollution Spike", emoji: "😷", eventType: "pollution" },
+  curfew: { label: "Curfew / Zone Closure", emoji: "🚫", eventType: "curfew" },
+  downtime: { label: "App Downtime", emoji: "📉", eventType: "app_down" },
 };
 
-const steps = [
+const stepLabels = [
   { label: "Event Detected", desc: "External disruption confirmed via real-time data feeds.", icon: AlertTriangle },
-  { label: "Analyzing Worker Exposure", desc: "Evaluating impact on delivery zone and shift schedule.", icon: Search },
-  { label: "Running Fraud Checks", desc: "Multi-signal verification — GPS, activity, duplicates.", icon: ShieldCheck },
-  { label: "Claim Automatically Triggered", desc: "Parametric threshold met — claim filed with full audit trail.", icon: FileCheck },
-  { label: "Payout Processed", desc: "Funds transferred to wallet via UPI in 8.2 seconds.", icon: CheckCircle },
+  { label: "Analyzing Worker Exposure", desc: "Evaluating impact on delivery zone & shift schedule.", icon: Search },
+  { label: "Running Fraud Checks", desc: "Multi-signal verification — location, activity, duplicates.", icon: ShieldCheck },
+  { label: "Claim Automatically Triggered", desc: "Parametric threshold met — claim filed with audit trail.", icon: FileCheck },
+  { label: "Payout Processed", desc: "Funds calculation complete — payout determined.", icon: CheckCircle },
 ];
 
 const Simulation = () => {
@@ -34,20 +35,98 @@ const Simulation = () => {
   const [started, setStarted] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
 
-  useEffect(() => {
-    if (!started) return;
-    if (currentStep >= steps.length - 1) {
-      const t = setTimeout(() => setShowExplanation(true), 800);
-      return () => clearTimeout(t);
+  // REAL data from backend
+  const [eventData, setEventData] = useState<Record<string, unknown> | null>(null);
+  const [claimData, setClaimData] = useState<Record<string, unknown> | null>(null);
+  const [explanation, setExplanation] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // Get stored user data from onboarding
+  const storedUser = JSON.parse(localStorage.getItem("ripe_user") || "null");
+
+  const runPipeline = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      // Step 0: Simulate event
+      setCurrentStep(0);
+      const simRes = await api.simulate({ eventType: meta.eventType });
+      setEventData(simRes.data.event as unknown as Record<string, unknown>);
+
+      // Step 1: Analyze (brief delay for UX)
+      await new Promise((r) => setTimeout(r, 1200));
+      setCurrentStep(1);
+
+      // Step 2: Fraud check + Claim
+      await new Promise((r) => setTimeout(r, 1200));
+      setCurrentStep(2);
+
+      // If user is onboarded, run real claim; otherwise create a temp user
+      let userId = storedUser?.user?.id;
+      if (!userId) {
+        // Auto-onboard a default user so the simulation still works
+        const onboardRes = await api.onboard({
+          name: "Demo User",
+          platform: "Zomato",
+          location: "Mumbai",
+          weeklyIncome: 5000,
+        });
+        userId = onboardRes.data.user.id;
+        localStorage.setItem("ripe_user", JSON.stringify(onboardRes.data));
+      }
+
+      await new Promise((r) => setTimeout(r, 1200));
+      setCurrentStep(3);
+
+      const claimRes = await api.claim({ userId, eventType: meta.eventType });
+      setClaimData(claimRes.data as unknown as Record<string, unknown>);
+
+      // Save claim to localStorage for Dashboard
+      const existingClaims = JSON.parse(localStorage.getItem("ripe_claims") || "[]");
+      existingClaims.unshift({
+        claimId: claimRes.data.claim.claimId,
+        event: `${meta.label} – ${claimRes.data.event.affectedArea}`,
+        amount: claimRes.data.claim.payout.payout,
+        status: claimRes.data.claim.status,
+        fraudLevel: claimRes.data.claim.fraud.level,
+        date: new Date().toLocaleString("en-IN"),
+      });
+      localStorage.setItem("ripe_claims", JSON.stringify(existingClaims));
+
+      // Step 4: Payout processed
+      await new Promise((r) => setTimeout(r, 1200));
+      setCurrentStep(4);
+
+      // Get AI explanation
+      await new Promise((r) => setTimeout(r, 800));
+
+      const claim = claimRes.data.claim;
+      const explainRes = await api.explain({
+        event: meta.label,
+        payout: claim.payout.payout,
+        riskScore: claimRes.data.riskScore,
+        fraudLevel: claim.fraud.level,
+        status: claim.status,
+      });
+      setExplanation(explainRes.data.explanation);
+      setShowExplanation(true);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Pipeline failed. Is the backend running?");
+      console.error("Pipeline error:", err);
+    } finally {
+      setLoading(false);
     }
-    const t = setTimeout(() => setCurrentStep((s) => s + 1), 1800);
-    return () => clearTimeout(t);
-  }, [currentStep, started]);
+  }, [meta.eventType, meta.label, storedUser?.user?.id]);
 
   const handleStart = () => {
     setStarted(true);
-    setCurrentStep(0);
+    runPipeline();
   };
+
+  // Build scenario data for panels using REAL backend data
+  const event = eventData as Record<string, unknown> | null;
+  const claim = (claimData as Record<string, unknown> | null);
 
   const scenarioData = { scenarioId: id, label: meta.label };
 
@@ -83,6 +162,12 @@ const Simulation = () => {
           )}
         </motion.div>
 
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
         {!started ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
@@ -92,7 +177,7 @@ const Simulation = () => {
             <p className="text-6xl mb-4">{meta.emoji}</p>
             <h2 className="text-xl font-bold mb-2">Ready to simulate?</h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              This will trigger RIPE's real-time AI pipeline — from event detection to instant payout.
+              This will call the REAL backend — event simulation, fraud check, payout calculation, and AI explanation.
             </p>
             <Button variant="hero" size="xl" onClick={handleStart}>
               Start Simulation
@@ -104,7 +189,7 @@ const Simulation = () => {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
               <div className="lg:col-span-3 glass rounded-2xl p-6">
                 <div className="space-y-4">
-                  {steps.map((step, i) => {
+                  {stepLabels.map((step, i) => {
                     const isActive = i <= currentStep;
                     const isCurrent = i === currentStep;
                     const isDone = i < currentStep;
@@ -147,16 +232,16 @@ const Simulation = () => {
                 </div>
               </div>
               <div className="lg:col-span-2 space-y-4">
-                <EventDetailsPanel scenario={scenarioData} />
+                <EventDetailsPanel event={event} scenario={scenarioData} />
               </div>
             </div>
 
-            {/* Analysis panels - show progressively */}
+            {/* Analysis panels - show progressively with REAL data */}
             <AnimatePresence>
               {currentStep >= 1 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <RiskBreakdownPanel scenario={scenarioData} />
-                  {currentStep >= 2 && <FraudAnalysisPanel />}
+                  <RiskBreakdownPanel claim={claim} scenario={scenarioData} />
+                  {currentStep >= 2 && <FraudAnalysisPanel claim={claim} />}
                 </div>
               )}
             </AnimatePresence>
@@ -164,8 +249,8 @@ const Simulation = () => {
             <AnimatePresence>
               {currentStep >= 3 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <DecisionPanel scenario={scenarioData} />
-                  {currentStep >= 4 && <PayoutPanel scenario={scenarioData} />}
+                  <DecisionPanel claim={claim} scenario={scenarioData} />
+                  {currentStep >= 4 && <PayoutPanel claim={claim} scenario={scenarioData} />}
                 </div>
               )}
             </AnimatePresence>
@@ -181,7 +266,7 @@ const Simulation = () => {
               <FlowChart currentStep={currentStep} traceId={traceId} />
             </motion.div>
 
-            {/* AI Explanation */}
+            {/* AI Explanation — REAL from backend */}
             <AnimatePresence>
               {showExplanation && (
                 <motion.div
@@ -197,7 +282,7 @@ const Simulation = () => {
                     </div>
                     <span className="text-[10px] font-mono text-accent/60">Powered by Qwen 3 32B</span>
                   </div>
-                  <TypeWriter text={`Based on real-time environmental data, ${meta.label.toLowerCase()} was detected in your delivery zone at ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}. Your scheduled shift overlapped with the disruption window. The AI risk engine assessed a composite risk score above the parametric threshold after analyzing weather severity, zone flood history, and your exposure duration. Automated fraud verification confirmed your GPS location, validated normal activity patterns, and cleared duplicate claim checks (fraud score: 0.12). The parametric claim was auto-triggered and processed to your UPI wallet within 8.2 seconds. AI Confidence: 96.3%.`} />
+                  <TypeWriter text={explanation} />
                   <div className="mt-6 flex gap-3">
                     <Link to="/dashboard">
                       <Button variant="hero" size="lg">View Dashboard</Button>

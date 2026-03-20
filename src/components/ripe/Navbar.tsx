@@ -17,40 +17,39 @@ const Navbar = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-strong">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2.5 group">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center glow-primary transition-shadow duration-300 group-hover:bg-primary/25">
             <Shield className="w-4 h-4 text-primary" />
           </div>
           <span className="font-bold text-lg tracking-tight">RIPE</span>
         </Link>
 
-        {/* Demo badge - centered */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-accent/30 bg-accent/5 text-[11px] font-medium text-accent tracking-wide animate-glow-pulse">
+        {/* Desktop nav links + badge */}
+        <div className="hidden md:flex items-center gap-6 flex-1 justify-center">
+          <div className="flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 whitespace-nowrap",
+                  location.pathname === link.to
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-accent/30 bg-accent/5 text-[11px] font-medium text-accent tracking-wide animate-glow-pulse shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            Phase 1 Prototype • Demo Version
+            Phase 1 Prototype
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={cn(
-                "px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200",
-                location.pathname === link.to
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <Link to="/onboarding" className="hidden md:block">
             <Button variant="hero" size="sm">
               Get Protected
