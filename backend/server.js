@@ -66,12 +66,14 @@ app.use((req, res) => {
 // --- Global error handler ---
 app.use(errorHandler);
 
-// --- Start server ---
-const PORT = config.PORT;
-app.listen(PORT, () => {
-  console.log(`\n🚀 RIPE Engine Backend running on http://localhost:${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   Groq API Key: ${config.GROQ_API_KEY ? '✓ loaded' : '✗ missing'}\n`);
-});
+// --- Start server (only when running locally, not on Vercel) ---
+if (!process.env.VERCEL) {
+  const PORT = config.PORT;
+  app.listen(PORT, () => {
+    console.log(`\n🚀 RIPE Engine Backend running on http://localhost:${PORT}`);
+    console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   Groq API Key: ${config.GROQ_API_KEY ? '✓ loaded' : '✗ missing'}\n`);
+  });
+}
 
 module.exports = app;

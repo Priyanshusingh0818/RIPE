@@ -7,7 +7,7 @@
     "dev": "concurrently -n FRONTEND,BACKEND -c cyan,green \"vite\" \"cd backend && node server.js\"",
     "dev:frontend": "vite",
     "dev:backend": "cd backend && nodemon server.js",
-    "build": "vite build",
+    "build": "cd backend && npm install --production && cd .. && vite build",
     "build:dev": "vite build --mode development",
     "start": "cd backend && node server.js",
     "lint": "eslint .",
@@ -16,6 +16,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "axios": "^1.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "express": "^4.21.0",
+    "uuid": "^9.0.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
