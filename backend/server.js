@@ -44,24 +44,33 @@ app.use('/api/simulate', simulateRoutes);
 app.use('/api/claim', claimRoutes);
 app.use('/api/explain', explainRoutes);
 
-// --- Serve frontend in production ---
+// --- Serve frontend in production (local only, Vercel CDN handles this) ---
 const path = require('path');
-const distPath = path.resolve(__dirname, '..', 'dist');
-app.use(express.static(distPath));
+if (!process.env.VERCEL) {
+  const distPath = path.resolve(__dirname, '..', 'dist');
+  app.use(express.static(distPath));
 
-// --- SPA fallback + API 404 ---
-app.use((req, res) => {
-  // If it's an API route that doesn't exist, return JSON 404
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({
+  // SPA fallback for non-API routes
+  app.use((req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({
+        success: false,
+        error: 'Route not found',
+        timestamp: new Date().toISOString(),
+      });
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+} else {
+  // On Vercel, only handle API 404s
+  app.use((req, res) => {
+    res.status(404).json({
       success: false,
       error: 'Route not found',
       timestamp: new Date().toISOString(),
     });
-  }
-  // For everything else, serve the frontend (SPA routing)
-  res.sendFile(path.join(distPath, 'index.html'));
-});
+  });
+}
 
 // --- Global error handler ---
 app.use(errorHandler);
